@@ -335,7 +335,7 @@ router.get('/getpatient', async (req, res) => {
 router.post('/doctorpersnoldetails', upload.single('image'), async (req, res) => {
   try {
     const { body, file, verification } = req;
-    console.log("body", body)
+    console.log("bodynew1111111111111111111111111111111111", body['once'][0].date,)
     const { email } = body.email
     const doctordetail = await doctordetails.find({ email });
 
@@ -359,23 +359,23 @@ router.post('/doctorpersnoldetails', upload.single('image'), async (req, res) =>
       country: body.country,
       state: body.state,
       once: {
-        date: body['once.date'],
-        timefrom: body['once.timefrom'],
-        timetill: body['once.timetill'],
-        consultationfees: body['once.consultationfees'],
+        date: body['once'][0].date,
+        timefrom: body['once'][0].timefrom,
+        timetill: body['once'][0].timetill,
+        consultationfees: body['once'][0].consultationfees,
       },
       daily: {
-        datefrom: body['daily.datefrom'],
-        datetill: body['daily.datetill'],
-        timefrom: body['daily.timefrom'],
-        timetill: body['daily.timetill'],
-        consultationfees: body['daily.consultationfees'],
+        datefrom: body['daily'][0].datefrom,
+        datetill: body['daily'][0].datetill,
+        timefrom: body['daily'][0].timefrom,
+        timetill: body['daily'][0].timetill,
+        consultationfees: body['daily'][0].consultationfees,
       },
       weekly: {
-        day: body['weekly.day'],
-        timefrom: body['weekly.timefrom'],
-        timetill: body['weekly.timetill'],
-        consultationfees: body['weekly.consultationfees'],
+        day: body['weekly'][0].day,
+        timefrom: body['weekly'][0].timefrom,
+        timetill: body['weekly'][0].timetill,
+        consultationfees: body['weekly'][0].consultationfees,
       },
     });
 
