@@ -680,7 +680,7 @@ router.get("/appointments/:userId", async (req, res) => {
     const userAppointments = await BookingAppointment.find({ userId: userId });
 
     if (!userAppointments || userAppointments.length === 0) {
-      return res.status(404).json({ error: 'Appointments not found' });
+      return res.status(201).json({ error: 'Appointments not found' });
     }
 
     // Prepare an array to store appointment details with doctor information
@@ -947,7 +947,7 @@ router.get("/mydoctor/:userId", async (req, res) => {
     const userAppointments = await ConformAppointment.find({ userId: userId });
     // console.log("userAppointments", userAppointments);
     if (!userAppointments || userAppointments.length === 0) {
-      return res.status(404).json({ error: 'Appointments not found' });
+      return res.status(201).json({ error: 'Appointments not found' });
     }
 
     // Prepare an array to store appointment details with doctor information

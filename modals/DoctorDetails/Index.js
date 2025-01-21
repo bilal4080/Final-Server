@@ -18,27 +18,25 @@ const doctordetailsSchema = new mongoose.Schema({
   state: { type: String, required: false },
   city: { type: String, required: false },
   once: [{
-    date: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
+    date: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
     consultationfees: { type: String, required: false },
   }],
   daily: [{
-    datefrom: { type: String, required: true },
-    datetill: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
-    consultationfees: { type: String, required: true },
+    datefrom: { type: String, required: false },
+    datetill: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
   }],
   weekly: [{
-    day: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
-    consultationfees: { type: String, required: true },
+    day: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
   }],
 });
-
-
 
 const Pendingdoctor = new mongoose.Schema({
   image: { type: String, required: false },
@@ -57,23 +55,23 @@ const Pendingdoctor = new mongoose.Schema({
   state: { type: String, required: false },
   city: { type: String, required: false },
   once: [{
-    date: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
-    consultationfees: { type: String, required: true },
+    date: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
   }],
   daily: [{
-    datefrom: { type: String, required: true },
-    datetill: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
-    consultationfees: { type: String, required: true },
+    datefrom: { type: String, required: false },
+    datetill: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
   }],
   weekly: [{
-    day: { type: String, required: true },
-    timefrom: { type: String, required: true },
-    timetill: { type: String, required: true },
-    consultationfees: { type: String, required: true },
+    day: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
   }],
 });
 
