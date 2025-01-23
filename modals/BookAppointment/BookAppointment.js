@@ -1,41 +1,59 @@
-const mongoose = require('mongoose')
+const express = require('express');
+const router = express.Router();
+const { BookingAppointment, BookingAppointmentDetail } = require('../models/bookappointment'); // Adjust path as needed
 
-const bookappointment = new mongoose.Schema({
-    doc_id: { type: String, required: false },
-    userId: { type: String, required: false },
-    Details: { type: String, required: false },
-    gender: { type: String, required: false },
-    patientAge: { type: String, required: false },
-    expiryYear: { type: String, required: false },
-    expiryMonth: { type: String, required: false },
-    cvv: { type: String, required: false },
-    cardNumber: { type: String, required: false },
-    holderName: { type: String, required: false },
-    cardType: { type: String, required: false },
-    selectedDate: { type: String, required: false },
-    selectedTimeSlot: { type: String, required: false },
-    bookingDate: { type: String, required: false },
-    bookingFor: { type: String, required: false },
-    Fees: { type: String, required: false },
-})
-const bookappointmentdetail = new mongoose.Schema({
-    doc_id: { type: String, required: false },
-    userId: { type: String, required: false },
-    Details: { type: String, required: false },
-    gender: { type: String, required: false },
-    patientAge: { type: String, required: false },
-    expiryYear: { type: String, required: false },
-    expiryMonth: { type: String, required: false },
-    cvv: { type: String, required: false },
-    cardNumber: { type: String, required: false },
-    holderName: { type: String, required: false },
-    cardType: { type: String, required: false },
-    selectedDate: { type: String, required: false },
-    selectedTimeSlot: { type: String, required: false },
-    bookingDate: { type: String, required: false },
-    bookingFor: { type: String, required: false },
-    Fees: { type: String, required: false },
-})
-const BookingAppointment = mongoose.model("BOOKINGAPPOINTMENT", bookappointment);
-const BookingAppointmentDetail = mongoose.model("BOOKINGAPPOINTMENTDetail", bookappointmentdetail);
-module.exports = { BookingAppointment ,BookingAppointmentDetail};
+router.post('/bookappointment', async (req, res) => {
+    try {
+        console.log("Request Body:", req.body); // Crucial debugging step
+
+        // 1. Data Type Conversion and Validation:
+        const { selectedDate, selectedTimeSlot, doc_id, bookingDate, userId, Fees } = req.body;
+
+        if (!selectedDate || !selectedTimeSlot || !doc_id || !bookingDate || !userId || !Fees) {
+            return res.status(400).json({ success: false, message: "Missing required fields." });
+        }
+
+        const parsedBookingDate = new Date(bookingDate);
+        const parsedSelectedDate = new Date(selectedDate);
+        const parsedFees = Number(Fees);
+
+        if (isNaN(parsedBookingDate.getTime()) || isNaN(parsedSelectedDate.getTime())) {
+            return res.status(400).json({ success: false, message: "Invalid date format. Please use ISO 8601 format." });
+        }
+
+        if (isNaN(parsedFees)) {
+            return res.status(400).json({ success: false, message: "Invalid Fees format. Please use a valid number." });
+        }
+        // 2. Create Appointment Data
+        const appointmentData = {
+            selectedDate: parsedSelectedDate.toISOString(), // Store as ISO string in DB
+            selectedTimeSlot,
+            doc_id,
+            bookingDate: parsedBookingDate.toISOString(), // Store as ISO string in DB
+            userId,
+            Fees: parsedFees.toString(), // Store as string in DB
+        };
+
+        const newAppointment = new BookingAppointment(appointmentData);
+        await newAppointment.save();
+
+        // Example to save to BookingAppointmentDetail if needed
+        const appointmentDetailData = {
+            doc_id,
+            userId,
+            bookingDate: parsedBookingDate.toISOString(),
+            bookingFor: selectedTimeSlot, // Or any other relevant info
+            Fees: parsedFees.toString(),
+        };
+        const newAppointmentDetail = new BookingAppointmentDetail(appointmentDetailData);
+        await newAppointmentDetail.save();
+
+        res.status(201).json({ success: true, message: "Appointment successfully booked." });
+
+    } catch (error) {
+        console.error("Error booking appointment:", error);
+        res.status(500).json({ success: false, message: "Error booking appointment.", error: error.message }); // Send error message for debugging
+    }
+});
+
+module.exports = router;

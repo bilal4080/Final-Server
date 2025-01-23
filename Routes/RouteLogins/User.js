@@ -389,83 +389,6 @@ router.post('/doctorpersnoldetails', upload.single('image'), async (req, res) =>
 
 });
 
-//new way to add images 
-// router.post('/doctorpersnoldetails', async (req, res) => {
-//   try {
-//     uploadSingle.single('image')(req, res, async function (err) {
-//       if (err instanceof multer.MulterError) {
-//         // A Multer error occurred when uploading.
-//         console.log(err)
-
-//         return res.status(400).json({ message: err.message, success: false });
-//       } else if (err) {
-//         console.log(err)
-
-//         // An unknown error occurred when uploading.
-//         return res.status(500).json({ message: err.message, success: false });
-//       }
-//       const { body, file, verification } = req;
-//       console.log("body", body)
-//       const { email } = body.email
-//       const doctordetail = await doctordetails.find({ email });
-
-//       if (doctordetail.length > 0) {
-//         return res.status(200).json({ message: 'Doctor is already registered!' });
-//       }
-//       let { title, rank } = req.body;
-//       let image = req.file ? req.file.filename : null; 
-//       // Create a new doctordetails instance with the received data
-//       const newDoctorDetails = new pendingdoctors({
-//         image: file ? file.path : null, // Assuming you want to store the file path
-//         verification: verification ? verification.path : null, // Assuming you want to store the file path
-//         name: body.name,
-//         email: body.email,
-//         password: body.password,
-//         specialization: body.specialization,
-//         conditionstreated: body.conditionstreated,
-//         aboutself: body.aboutself,
-//         education: body.education,
-//         college: body.college,
-//         license: body.license,
-//         yearofexperience: body.yearofexperience,
-//         country: body.country,
-//         state: body.state,
-//         city: body.city,
-//         once: body.once.map(item => ({
-//           date: item.date,
-//           timefrom: item.timefrom,
-//           timetill: item.timetill,
-//           consultationfees: item.consultationfees,
-//         })),
-//         daily: body.daily.map(item => ({
-//           datefrom: item.datefrom,
-//           datetill: item.datetill,
-//           timefrom: item.timefrom,
-//           timetill: item.timetill,
-//           consultationfees: item.consultationfees,
-//         })),
-//         weekly: body.weekly.map(item => ({
-//           day: item.day,
-//           timefrom: item.timefrom,
-//           timetill: item.timetill,
-//           consultationfees: item.consultationfees,
-//         })),
-//       });
-
-//       // Save the data to the database
-//       await newDoctorDetails.save();
-//       res.status(200).json('Registration successful');
-//       // Get the uploaded file from req.file
-
-
-
-//     });
-
-//   } catch (error) {
-//     console.error('Error during registration:', error);
-//     res.status(500).json({ message: 'Internal server error' });
-//   }
-// });
 
 
 //get DoctorDetails
@@ -583,93 +506,49 @@ router.get("/getbookappointment/:userId", async (req, res) => {
 //store BookAppointment
 router.post('/bookappointment', async (req, res) => {
   try {
+      console.log("Request Body:", req.body); // Crucial debugging step
 
-    const {
-      bookingType,
-      gender,
-      patientAge,
-      expiryYear,
-      expiryMonth,
-      cvv,
-      cardNumber,
-      holderName,
-      cardType,
-      selectedDate,
-      selectedTimeSlot,
-      bookingFor,
-      doc_id,
-      bookingDate,
-      userId,
-      details,
-      Fees } = req.body;
+      // 1. Data Type Conversion and Validation:
+      const { selectedDate, selectedTimeSlot, doc_id, bookingDate, userId, Fees } = req.body;
 
-    // console.log(Fees)
-    //   bookingType,
-    //   gender,
-    //   patientAge,
-    //   expiryYear,
-    //   expiryMonth,
-    //   cvv,
-    //   cardNumber,
-    //   cardName,
-    //   cardType,
-    //   selectedDate,
-    //   selectedTimeSlot,
-    //   doc_id)
-    // const existingUser = await User.findOne({ _id:id });
-    const newBookAppointment = new BookingAppointment({
-      doc_id: doc_id,
-      bookingType: bookingType,
-      gender: gender,
-      patientAge: patientAge,
-      expiryYear: expiryYear,
-      expiryMonth: expiryMonth,
-      cvv: cvv,
-      cardNumber: cardNumber,
-      holderName: holderName,
-      cardType: cardType,
-      selectedDate: selectedDate,
-      selectedTimeSlot: selectedTimeSlot,
-      bookingDate: bookingDate,
-      bookingFor: bookingFor,
-      userId: userId,
-      Details: details,
-      Fees: Fees
-    });
-    const newBookAppointmentDetail = new BookingAppointmentDetail({
-      doc_id: doc_id,
-      bookingType: bookingType,
-      gender: gender,
-      patientAge: patientAge,
-      expiryYear: expiryYear,
-      expiryMonth: expiryMonth,
-      cvv: cvv,
-      cardNumber: cardNumber,
-      holderName: holderName,
-      cardType: cardType,
-      selectedDate: selectedDate,
-      selectedTimeSlot: selectedTimeSlot,
-      bookingDate: bookingDate,
-      bookingFor: bookingFor,
-      Details: details,
-      userId: userId,
-      Fees: Fees
-    });
-    console.log("newBookAppointment", newBookAppointment);
-    await newBookAppointment.save();
-    await newBookAppointmentDetail.save();
+      if (!selectedDate || !selectedTimeSlot || !doc_id || !bookingDate || !userId || !Fees) {
+          return res.status(400).json({ success: false, message: "Missing required fields." });
+      }
 
-    res.status(200).json('Book appointment successfully');
-    // if (existingUser) {
+      const parsedBookingDate = new Date(bookingDate);
+      const parsedSelectedDate = new Date(selectedDate);
+      const parsedFees = Number(Fees);
 
-    // }else{
-    //   return res.status(400).json('User with this email Not exists');
-    // }
+      if (isNaN(parsedBookingDate.getTime()) || isNaN(parsedSelectedDate.getTime())) {
+          return res.status(400).json({ success: false, message: "Invalid date format. Please use ISO 8601 format." });
+      }
+
+      if (isNaN(parsedFees)) {
+          return res.status(400).json({ success: false, message: "Invalid Fees format. Please use a valid number." });
+      }
+
+      // 2. Create Appointment Data
+      const appointmentData = {
+          selectedDate: parsedSelectedDate.toISOString(),
+          selectedTimeSlot,
+          doc_id,
+          bookingDate: parsedBookingDate.toISOString(),
+          userId,
+          Fees: parsedFees.toString(), // Store as string in DB
+      };
+
+      const newAppointment = new BookingAppointment(appointmentData);
+      await newAppointment.save();
+
+      res.status(201).json({ success: true, message: "Appointment successfully booked." });
 
   } catch (error) {
-    res.status(500).json('Error saving user to the database');
+      console.error("Error booking appointment:", error);
+      res.status(500).json({ success: false, message: "Error booking appointment.", error: error.message }); // Send error message for debugging
   }
 });
+
+module.exports = router;
 
 // get BookAppointment with Doctor details
 router.get("/appointments/:userId", async (req, res) => {
@@ -1003,58 +882,7 @@ router.get("/doctorTransactions/:doc_id", async (req, res) => {
 });
 
 
-// patient updating the profile
-// router.post('/update-patient-profile/:userId', upload.single('image'), async (req, res) => {
-//   try {
-//     const userId = req.params.userId;
-//     console.log("body", req.body);
-//     const file = req.file;
-//     const {
-//       firstName,
-//       lastName,
-//       dateOfBirth,
-//       email,
-//       mobile,
-//       address,
-//       city,
-//       state,
-//       zipCode,
-//       country,
-    
-//     } = req.body;
 
-//     console.log("file", file)
-
-//     // Find the user by ID
-//     const user = await User.findOne({ _id: userId });
-
-//     if (!user) {
-//       return res.status(200).json({ message: 'Patient Profile  is Not Found!' });
-//     }
-//     // Create a new doctordetails instance with the received data
-//     const patientProfile = new PatientProfile({
-//       image: file ? file.path : null,
-//       firstName: firstName,
-//       lastName: lastName,
-//       dateOfBirth: dateOfBirth,
-//       email: email,
-//       mobile: mobile,
-//       address: address,
-//       city: city,
-//       state: state,
-//       zipCode: zipCode,
-//       country: country,
-//       userId: userId,
-//     });
-
-//     // Save the data to the database
-//     await patientProfile.save();
-//     res.status(200).json('Profile updated successfully');
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     res.status(500).json('Error updating profile');
-//   }
-// });
 router.post('/update-patient-profile/:userId', upload.single('image'), async (req, res) => {
   try {
     const userId = req.params.userId;
