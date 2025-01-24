@@ -1057,13 +1057,22 @@ router.post('/reset-user-password', async (req, res) => {
 router.get('/doctors-by-specialty/:specialty', async (req, res) => {
   try {
     const specialization = req.params.specialty;
+    console.log('Specialization received:', specialization);
+
     const doctors = await doctordetails.find({ specialization });
+    console.log('Doctors fetched:', doctors);
+
+    if (doctors.length === 0) {
+      return res.status(404).json({ message: 'No doctors found for this specialty' });
+    }
+
     res.status(200).json(doctors);
   } catch (error) {
     console.error('Error fetching doctors by specialty:', error);
-    res.status(500).json('Error fetching doctors by specialty');
+    res.status(500).json({ message: 'Error fetching doctors by specialty' });
   }
 });
+
 
 
 // get appointment detail with doctor and user detail
