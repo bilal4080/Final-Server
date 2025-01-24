@@ -88,51 +88,7 @@ function checkFileType(file, cb) {
   }
 }
 
-// multiple
-// const storageMultiple = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, path.join(__dirname, "../uploads/"));
-//   },
-//   filename: function (req, file, cb) {
-//     const filename =
-//       file.fieldname + "-" + Date.now() + path.extname(file.originalname);
-//     const filePath = path.join(__dirname, "../uploads/", filename);
 
-//     // Check if the file already exists in the destination folder
-//     fs.access(filePath, fs.constants.F_OK, (err) => {
-//       if (err) {
-//         // File doesn't exist, proceed with saving
-//         cb(null, filename);
-//       } else {
-//         // File already exists, just return the filename without saving it again
-//         cb(null, filename); // Send only the fieldname without timestamp
-//       }
-//     });
-//   },
-// });
-
-// exports.uploadMultiple = multer({
-//   storage: storageMultiple,
-//   fileFilter: function (req, file, cb) {
-//     // console.log(file)
-//     checkFileType(file, cb);
-//   },
-// }).fields([
-//   { name: "userImage", maxCount: 1 },
-//   { name: "kycBImage", maxCount: 1 },
-//   { name: "kycFImage", maxCount: 1 },
-// ]);
-
-// function checkFileType(file, cb) {
-//   const filetypes = /jpeg|jpg|png|gif/;
-//   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-//   const mimetype = filetypes.test(file.mimetype);
-//   if (mimetype && extname) {
-//     return cb(null, true);
-//   } else {
-//     cb("Error: Images only!");
-//   }
-// }
 
 require('dotenv').config();
 // vbin oyml zgou fcxe
@@ -143,17 +99,6 @@ const transporter = nodemailer.createTransport({
     pass: "?",
   },
 });
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.mailtrap.io",
-//   port: 2525,
-//   auth: {
-//       user: "mohammadilyas20001@gmail.com",
-//       pass: process.env.PASS,
-//   }
-// });
-
-
-/////coinbex//////
 
 // Signup route
 router.post('/coinbdixsignup', async (req, res) => {
@@ -503,52 +448,54 @@ router.get("/getbookappointment/:userId", async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+
 //store BookAppointment
 router.post('/bookappointment', async (req, res) => {
   try {
-      console.log("Request Body:", req.body); // Crucial debugging step
+    // Extract only the required fields from the request body
+    const { selectedDate, selectedTimeSlot, doc_id, userId, Fees } = req.body;
 
-      // 1. Data Type Conversion and Validation:
-      const { selectedDate, selectedTimeSlot, doc_id, bookingDate, userId, Fees } = req.body;
+    // Validate the required fields
+    if (!selectedDate || !selectedTimeSlot || !doc_id || !userId || !Fees) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-      if (!selectedDate || !selectedTimeSlot || !doc_id || !bookingDate || !userId || !Fees) {
-          return res.status(400).json({ success: false, message: "Missing required fields." });
-      }
+    // Create the booking appointment data
+    const newBookAppointment = new BookingAppointment({
+      doc_id,
+      selectedDate,
+      selectedTimeSlot,
+      bookingDate: new Date().toISOString(), // Automatically set the booking date
+      userId,
+      Fees,
+    });
 
-      const parsedBookingDate = new Date(bookingDate);
-      const parsedSelectedDate = new Date(selectedDate);
-      const parsedFees = Number(Fees);
+    // Save to the database
+    await newBookAppointment.save();
 
-      if (isNaN(parsedBookingDate.getTime()) || isNaN(parsedSelectedDate.getTime())) {
-          return res.status(400).json({ success: false, message: "Invalid date format. Please use ISO 8601 format." });
-      }
+    // Console log the successful booking data
+    console.log('Successful Booking:', {
+      doc_id,
+      selectedDate,
+      selectedTimeSlot,
+      bookingDate: newBookAppointment.bookingDate,
+      userId,
+      Fees,
+    });
 
-      if (isNaN(parsedFees)) {
-          return res.status(400).json({ success: false, message: "Invalid Fees format. Please use a valid number." });
-      }
-
-      // 2. Create Appointment Data
-      const appointmentData = {
-          selectedDate: parsedSelectedDate.toISOString(),
-          selectedTimeSlot,
-          doc_id,
-          bookingDate: parsedBookingDate.toISOString(),
-          userId,
-          Fees: parsedFees.toString(), // Store as string in DB
-      };
-
-      const newAppointment = new BookingAppointment(appointmentData);
-      await newAppointment.save();
-
-      res.status(201).json({ success: true, message: "Appointment successfully booked." });
+    res.status(200).json({ success: true, message: 'Book appointment successfully' });
 
   } catch (error) {
-      console.error("Error booking appointment:", error);
-      res.status(500).json({ success: false, message: "Error booking appointment.", error: error.message }); // Send error message for debugging
+    console.error('Error saving booking appointment:', error);
+    res.status(500).json({ error: 'Error saving booking appointment to the database' });
   }
 });
 
-module.exports = router;
+
+
+
 
 // get BookAppointment with Doctor details
 router.get("/appointments/:userId", async (req, res) => {
