@@ -100,57 +100,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Signup route
-router.post('/coinbdixsignup', async (req, res) => {
-  try {
-    const { number, email, password } = req.body;
-    // console.log("username, email, password", username, email, password)
-    const existingUser = await CoinbdixUser.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json('User with this email already exists');
-    }
-    const user = new CoinbdixUser({number, email, password });
-    await user.save();
-
-    res.status(200).json('Signup successful');
-  } catch (error) {
-    res.status(500).json('Error saving user to the database');
-  }
-});
-
-
-// user Login  route
-router.post('/coinbdixlogin', async (req, res) => {
-  try {
-    const { emailOrMobile, password } = req.body;
-
-    // Find the user using either email or mobile number
-    const user = await CoinbdixUser.findOne({
-      $or: [
-        { email: emailOrMobile },
-        { number: emailOrMobile }
-      ]
-    }).exec();
-
-    if (!user) {
-      return res.status(404).json('User not found');
-    }
-
-    if (user.password !== password) {
-      return res.status(401).json('Invalid password');
-    }
-
-    // Generate a token using the user's ID
-    // const token = jwt.sign({ id: user._id }, secretKey, { expiresIn: '1h' });
-    // Return the user's ID and token
-    res.status(200).json({ userId: user._id});
-  } catch (error) {
-    console.error(error);
-    res.status(500).json('Error logging in');
-  }
-});
-
 ////////IMDFX/////
 // Signup route
 router.post('/signup', async (req, res) => {
@@ -245,7 +194,7 @@ router.post('/doctorlogin', async (req, res) => {
   }
 });
 
-//getpatient with id
+//getpatient with id use on dasboard to get the user data 
 router.get('/getpatient/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -493,10 +442,6 @@ router.post('/bookappointment', async (req, res) => {
   }
 });
 
-
-
-
-
 // get BookAppointment with Doctor details
 router.get("/appointments/:userId", async (req, res) => {
   try {
@@ -533,6 +478,35 @@ router.get("/appointments/:userId", async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.get('/getappointments/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate userId
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Fetch appointments from the database by userId
+    const appointments = await BookingAppointment.find({ userId });
+
+    // Check if appointments exist
+    if (appointments.length === 0) {
+      return res.status(404).json({ message: 'No appointments found for this user' });
+    }
+
+    res.status(200).json({ success: true, appointments });
+
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ error: 'Error fetching appointments from the database' });
+  }
+});
+
+
+
+
 
 // signle doctor detail
 router.get('/getDoctorDetail/:id', async (req, res) => {
@@ -1226,20 +1200,7 @@ router.post("/deletemedicaldetails/:userId", async (req, res) => {
   }
 });
 
-// add prescription 
-// router.post('/Prescription', async (req, res) => {
-//   try {
-//     const formData = req.body;
-// console.log("req",req.body);
-//     // Save the form data to the database
-//     const savedFormData = await Prescriptions.create(formData);
 
-//     res.status(201).json(savedFormData);
-//   } catch (error) {
-//     console.error('Error storing form data:', error);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
 router.post('/Prescription',
   //  upload.single('image'),
   async (req, res) => {
@@ -1403,42 +1364,7 @@ router.post('/sendrequest/:doc_id', async (req, res) => {
   }
 });
 
-//get  request data of spacfic hospital  
-// router.get('/request-details/:doc_id/:Hos_Id', async (req, res) => {
-//   try {
-//     const { doc_id, Hos_Id } = req.params;
 
-//     // Find request details from HospitalRequests collection
-//     const requestDetails = await HospitalRequests.findOne({ doc_id, Hos_Id }).exec();
-//     if (!requestDetails) {
-//       return res.status(404).json({ message: 'Request details not found' });
-//     }
-
-//     // Find doctor details based on doc_id
-//     const doctorDetails = await doctordetails.findOne({ _id: doc_id }).exec();
-//     if (!doctorDetails) {
-//       return res.status(404).json({ message: 'Doctor details not found' });
-//     }
-
-//     // Find hospital details based on Hos_Id
-//     const hospitalDetails = await Hospital.findOne({ _id: Hos_Id }).exec();
-//     if (!hospitalDetails) {
-//       return res.status(404).json({ message: 'Hospital details not found' });
-//     }
-
-//     // Combine all details and send in response
-//     const response = {
-//       request: requestDetails,
-//       doctor: doctorDetails,
-//       hospital: hospitalDetails
-//     };
-
-//     res.json(response);
-//   } catch (error) {
-//     console.error('Error retrieving request details:', error);
-//     res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// });
 router.get("/office-doctor-request-details/:Hos_Id", async (req, res) => {
 
   try {
@@ -1651,29 +1577,7 @@ router.get('/gettodayappointments/:userId', async (req, res) => {
   }
 });
 
-//  save doctor available time thorugh doctor id
-// router.post("/doc_avaibletime/:docId", async (req, res) => {
 
-//   const { docId } = req.params;
-//   const { date, session1, session2 } = req.body;
-//   console.log("docId", docId);
-//   try {
-//     // Save doctor availability data to MongoDB
-//     const doctorAvailability = new AvaibleTimes({
-//       doc_id: docId,
-//       date,
-//       session1,
-//       session2,
-//     });
-
-//     await doctorAvailability.save();
-
-//     res.status(200).json({ success: true, message: "Doctor availability saved successfully." });
-//   } catch (error) {
-//     console.error("Error saving doctor availability:", error);
-//     res.status(500).json({ success: false, message: "Internal Server Error" });
-//   }
-// });
 router.post("/doc_avaibletime/:docId", async (req, res) => {
   const { docId } = req.params;
   const { date, session1, session2 } = req.body;
@@ -1691,30 +1595,7 @@ router.post("/doc_avaibletime/:docId", async (req, res) => {
     await doctorAvailability.save();
 
     res.status(200).json({ success: true, message: "Doctor availability saved successfully." });
-    // Check if availability entry already exists for the given date and session
-    // const existingAvailability = await AvaibleTimes.findOne({ doc_id: docId, date: date });
-
-    // if (existingAvailability) {
-
-    //   existingAvailability.session1 = session1;
-    //   existingAvailability.session2 = session2;
-
-    //   await existingAvailability.save();
-
-    //   res.status(200).json({ success: true, message: "Doctor availability updated successfully." });
-    // } else {
-
-    //   const doctorAvailability = new AvaibleTimes({
-    //     doc_id: docId,
-    //     date,
-    //     session1,
-    //     session2,
-    //   });
-
-    //   await doctorAvailability.save();
-
-    //   res.status(200).json({ success: true, message: "Doctor availability saved successfully." });
-    // }
+  
   } catch (error) {
     console.error("Error saving/updating doctor availability:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1795,31 +1676,7 @@ router.get('/check-doctor-availability/:docId/:dayname', async (req, res) => {
   }
 });
 
-// paitent upload medical Report 
-// router.post('/medicalreport/:userId', upload.fields([
-//   { name: 'BloodReport', maxCount: 1 },
-//   { name: 'STscan', maxCount: 1 },
-//   { name: 'MRI', maxCount: 1 }
-// ]), async (req, res) => {
-//   try {
-//     // const { userId } = req.body;
-//     const { userId } = req.params;
-//     console.log("reQ", req.body);
-//     const medicalReport = new MedicalReport({
-//       userId,
-//       BloodReport: req.files['BloodReport'] ? req.files['BloodReport'][0].path : null,
-//       STscan: req.files['STscan'] ? req.files['STscan'][0].path : null,
-//       MRI: req.files['MRI'] ? req.files['MRI'][0].path : null
-//     });
 
-//     await medicalReport.save();
-
-//     res.status(201).json({ message: 'Medical report saved successfully' });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 
 router.post('/medicalreport/:userId', async (req, res) => {
   try {
@@ -1859,27 +1716,7 @@ router.post('/medicalreport/:userId', async (req, res) => {
   }
 });
 
-// GET medical reports for a specific user
-// router.get('/getmedicalreport/:userId', async (req, res) => {
-//   try {
-//     const userId = req.params.userId;
-//     const medicalReports = await MedicalReport.find({ userId });
 
-//     // Map over the medical reports and replace file paths with file data
-//     const reportsWithFiles = medicalReports.map(report => ({
-//       _id: report._id,
-//       userId: report.userId,
-//       BloodReport: report.BloodReport ? fs.readFileSync(report.BloodReport, 'base64') : null,
-//       STscan: report.STscan ? fs.readFileSync(report.STscan, 'base64') : null,
-//       MRI: report.MRI ? fs.readFileSync(report.MRI, 'base64') : null,
-//     }));
-
-//     res.status(200).json(reportsWithFiles);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 router.get('/getmedicalreport/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -1917,60 +1754,6 @@ router.get('/search-location', async (req, res) => {
   }
 });
 
-
-/// Update office own profile 
-// router.post('/update-office-profile/:officeId', upload.single('image'), async (req, res) => {
-//   try {
-//     const officeId = req.params.officeId;
-//     console.log("body", req.body);
-//     const {
-
-//       email,
-//       phone,
-//       officename,
-//       officeemail,
-//       officephone,
-//       officewebsite,
-//       officespecialty,
-//       country,
-//       street,
-//       city,
-//       state,
-//       zipcode,
-//       file
-//     } = req.body;
-
-//     // Find the office profile by ID
-//     const officeProfile = await office.findOne({ _id: officeId });
-//     if (!officeProfile) {
-//       return res.status(404).json({ message: 'Office Profile not found' });
-//     }
-
-//     // Update the existing office profile with the received data
-
-//     officeProfile.email = email;
-//     officeProfile.phone = phone;
-//     officeProfile.officename = officename;
-//     officeProfile.officeemail = officeemail;
-//     officeProfile.officephone = officephone;
-//     officeProfile.officewebsite = officewebsite;
-//     officeProfile.officespecialty = officespecialty;
-//     officeProfile.country = country;
-//     officeProfile.street = street;
-//     officeProfile.city = city;
-//     officeProfile.state = state;
-//     officeProfile.zipcode = zipcode;
-//     officeProfile.image = file ? file.path : officeProfile.image; // If a new image is provided, update it
-
-//     // Save the updated profile to the database
-//     await officeProfile.save();
-
-//     res.status(200).json('Office Profile updated successfully');
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     res.status(500).json('Error updating profile');
-//   }
-// });
 router.post('/update-office-profile/:officeId', async (req, res) => {
   try {
     const officeId = req.params.officeId;
@@ -2254,82 +2037,6 @@ router.get('/doctorAvailableTimings/:docId', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-
-///update doctor time slots
-// router.put('/updatedoctortimeslot/:docId', async (req, res) => {
-//   const { docId } = req.params;
-//   console.log("docId",docId);
-//   const { once, daily, weeks } = req.body;
-//   const weekly=weeks;
-//   console.log("weekly",weekly);
-//   try {
-//     let updatedDoctor;
-//     if (weekly) {
-//       // If weekly data is provided, append it to the existing array
-//       updatedDoctor = await doctordetails.findByIdAndUpdate(
-//         docId,
-//         { $push: { weekly: weekly } }, // Append new weekly data to the array
-//         { new: true }
-//       );
-//     } else {
-//       // If weekly data is not provided, update other fields
-//       updatedDoctor = await doctordetails.findByIdAndUpdate(
-//         docId,
-//         { once, daily },
-//         { new: true }
-//       );
-//     }
-//     res.json(updatedDoctor);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Error updating doctor data' });
-//   }
-// });
-// router.put('/updatedoctortimeslot/:docId', async (req, res) => {
-//   const { docId } = req.params;
-//   const { once, daily, weeks } = req.body;
-//   const weekly = weeks;
-
-//   try {
-//       let updatedDoctor;
-
-//       if (weekly) {
-//           const existingDoctor = await doctordetails.findById(docId);
-
-//           // Check if the provided time slot conflicts with existing slots for the same day
-//           const timeConflict = existingDoctor.weekly.some(item =>
-//               item.day === weekly.day &&
-//               item.timefrom === weekly.timefrom &&
-//               item.timetill === weekly.timetill
-//           );
-
-//           if (timeConflict) {
-//               return res.status(400).json({ message: 'Duplicate time slot for the same day' });
-//           }
-
-//           // If no conflict, append the new slot to the existing array
-//           updatedDoctor = await doctordetails.findByIdAndUpdate(
-//               docId,
-//               { $push: { weekly } },
-//               { new: true }
-//           );
-//       } else {
-//           // If weekly data is not provided, update other fields
-//           updatedDoctor = await doctordetails.findByIdAndUpdate(
-//               docId,
-//               { once, daily },
-//               { new: true }
-//           );
-//       }
-
-//       res.json(updatedDoctor);
-//   } catch (error) {
-//       console.error(error);
-//       res.status(500).json({ message: 'Error updating doctor data' });
-//   }
-// });
-
 router.put('/updatedoctortimeslot/:docId', async (req, res) => {
   const { docId } = req.params;
   const { once, daily, weeks } = req.body;
@@ -2382,73 +2089,5 @@ router.put('/updatedoctortimeslot/:docId', async (req, res) => {
     res.status(500).json({ message: 'Error updating doctor data' });
   }
 });
-
-// router.put('/updatedoctortimeslot/:docId', async (req, res) => {
-//   const { docId } = req.params;
-//   const { once, daily, weeks } = req.body;
-//   const weekly = weeks;
-//   console.log("wekly", weekly);
-
-//   try {
-//     let updatedDoctor;
-
-//     if (weekly) {
-//       // Check if the provided day already has 5 slots
-//       const existingDoctor = await doctordetails.findById(docId);
-//       console.log("existingDoctor", existingDoctor);
-
-//       // If weekly array doesn't exist, create it with the new slot
-//       if (!existingDoctor.weekly) {
-//         updatedDoctor = await doctordetails.findByIdAndUpdate(
-//           docId,
-//           { $set: { 'weekly': [{ day: weekly.day, slots: [{ timefrom: weekly.timefrom, timetill: weekly.timetill }] }] } },
-//           { new: true }
-//         );
-//       } else {
-//         // Check if the provided day already has 5 slots
-//         const daySlots = existingDoctor.weekly.find(item => item.day === weekly.day);
-//         console.log("daySlots", daySlots);
-
-//         if (daySlots && daySlots.length >= 5) {
-//           return res.status(400).json({ message: 'Maximum slots per day reached' });
-//         }
-
-//         // Check if the provided time slot conflicts with existing slots for the same day
-//         const timeConflict = existingDoctor.weekly.some(item =>
-//           item.day === weekly.day &&
-//           (
-//             (item.timefrom <= weekly.timefrom && weekly.timefrom < item.timetill) ||
-//             (item.timefrom < weekly.timetill && weekly.timetill <= item.timetill)
-//           )
-//         );
-
-//         if (timeConflict) {
-//           return res.status(400).json({ message: 'Time slot conflict' });
-//         }
-
-//         // If the checks pass, append the new slot to the existing array
-//         updatedDoctor = await doctordetails.findByIdAndUpdate(
-//           docId,
-//           { $push: { 'weekly.$.slots': { timefrom: weekly.timefrom, timetill: weekly.timetill } } },
-//           { new: true }
-//         );
-//       }
-//     } else {
-//       // If weekly data is not provided, update other fields
-//       updatedDoctor = await doctordetails.findByIdAndUpdate(
-//         docId,
-//         { once, daily },
-//         { new: true }
-//       );
-//     }
-
-//     res.json(updatedDoctor);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Error updating doctor data' });
-//   }
-// });
-
-
 
 module.exports = router;
