@@ -153,7 +153,6 @@ router.post('/doctorlogin', async (req, res) => {
   try {
     const { email, password, accountType } = req.body;
 
-
     if (accountType === "office") {
 
       const offices = await office.findOne({ email }).exec();
@@ -165,12 +164,16 @@ router.post('/doctorlogin', async (req, res) => {
       if (offices.password !== password) {
         return res.status(401).json('Invalid password');
       }
-      const secretKey = generateSecretKey();
-      // console.log(secretKey);
 
+      const secretKey = generateSecretKey();
       const token = jwt.sign({ email: offices._id }, secretKey);
-      // console.log(token);
-      res.status(201).json(offices._id);
+
+      // Respond with a success message and the user ID
+      res.status(200).json({
+        message: 'Login successful',
+        userId: offices._id,
+        token: token,
+      });
 
     } else {
       const doctor = await doctordetails.findOne({ email }).exec();
@@ -180,19 +183,23 @@ router.post('/doctorlogin', async (req, res) => {
       if (doctor.password !== password) {
         return res.status(401).json('Invalid password');
       }
+
       const secretKey = generateSecretKey();
-      // console.log(secretKey);
-
       const token = jwt.sign({ email: doctor._id }, secretKey);
-      // console.log(token);
-      res.status(200).json(doctor._id);
-    }
 
+      // Respond with a success message and the user ID
+      res.status(200).json({
+        message: 'Login successful',
+        userId: doctor._id,
+        token: token,
+      });
+    }
 
   } catch (error) {
     res.status(500).json('Error finding user');
   }
 });
+
 
 //getpatient with id use on dasboard to get the user data 
 router.get('/getpatient/:id', async (req, res) => {
