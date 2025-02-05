@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const http = require("http");
 const socketIo = require("socket.io");
-
 const { User } = require("../../modals/Logins/UserLogin");
-const { CoinbdixUser } = require("../../modals/Coinbex/Login");
 const { doctordetails, pendingdoctors } = require("../../modals/DoctorDetails/Index")
 const { BookingAppointment, BookingAppointmentDetail } = require("../../modals/BookAppointment/BookAppointment")
 const { ConformAppointment } = require("../../modals/ConformAppointment/ConformAppointment")
@@ -498,27 +496,60 @@ router.get('/getappointments/:userId', async (req, res) => {
 
 
 
-
-
-// signle doctor detail
-router.get('/getDoctorDetail/:id', async (req, res) => {
+router.get('/doctor/:id', async (req, res) => {
   try {
     const doctorId = req.params.id;
 
-    // Find the doctor details based on the ID
-    const doctorDetail = await doctordetails.findOne({ _id: doctorId });
-
-    if (!doctorDetail) {
-      return res.status(404).json({ error: 'Doctor not found' });
+    // Check in the doctordetails collection first
+    const doctor = await doctordetails.findById(doctorId);
+    if (doctor) {
+      return res.status(200).json(doctor); // Return doctor data if found
     }
 
-    // Send the doctor details as a JSON response
-    res.status(200).json(doctorDetail);
+    // If not found, check in the pendingdoctors collection
+    const pendingDoctor = await pendingdoctors.findById(doctorId);
+    if (pendingDoctor) {
+      return res.status(200).json(pendingDoctor); // Return pending doctor data if found
+    }
+
+    // If doctor not found in both collections
+    return res.status(404).json({ message: 'Doctor not found' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error retrieving doctor details', details: error.message });
+    console.error('Error fetching doctor data:', error);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
+// signle doctor detail
+
+// router.get('/getDoctorDetail/:id', async (req, res) => {
+//   console.log('Route accessed:', req.params.id); // Check if this logs
+
+//   try {
+//     const doctorId = req.params.id;
+
+//     console.log('Checking ID:', doctorId);
+//     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+//       console.log('Invalid ID');
+//       return res.status(400).json({ error: 'Invalid Doctor ID' });
+//     }
+
+//     const doctorDetail = await doctordetails.findOne({ _id: doctorId });
+//     console.log('Doctor Detail:', doctorDetail);
+
+//     if (!doctorDetail) {
+//       console.log('Doctor not found');
+//       return res.status(404).json({ error: 'Doctor not found' });
+//     }
+
+//     res.status(200).json(doctorDetail);
+//   } catch (error) {
+//     console.error('Error:', error);
+//     res.status(500).json({ error: 'Error retrieving doctor details', details: error.message });
+//   }
+// });
+
+
+
 
 // get BookAppointment with patient Id  details
 router.get("/doc_appointments/:docId", async (req, res) => {
