@@ -1,0 +1,12 @@
+const mongoose = require("mongoose");
+
+const AcceptedAppointmentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  doc_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+  selectedDate: String,
+  selectedTimeSlot: String,
+  Fees: Number,
+  status: { type: String, default: "accepted" },
+});
+
+module.exports = mongoose.model("AcceptedAppointments", AcceptedAppointmentSchema);

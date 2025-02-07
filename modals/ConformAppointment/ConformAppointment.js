@@ -1,9 +1,10 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
-const Conformappointment = new mongoose.Schema({
+const ConformAppointmentSchema = new mongoose.Schema({
     docId: { type: String, required: true },
     userId: { type: String, required: true },
-   
-})
-const ConformAppointment = mongoose.model("CONFORMAPPOINTMENT", Conformappointment);
+});
+
+const ConformAppointment = mongoose.model("ConformAppointment", ConformAppointmentSchema);
+
 module.exports = { ConformAppointment };

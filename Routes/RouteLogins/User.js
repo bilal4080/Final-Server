@@ -26,10 +26,11 @@ const multer = require('multer');
 const path = require("path");
 const fs = require("fs");
 const upload = multer({ dest: 'uploads/' });
-
+const mongoose = require("mongoose");
 const app = express();
 const cors = require("cors");
 app.use('/uploads', express.static('uploads'));
+app.use(express.json());
 
 
 const { authenticateToken } = require('../../authentication');
@@ -519,34 +520,7 @@ router.get('/doctor/:id', async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 });
-// signle doctor detail
 
-// router.get('/getDoctorDetail/:id', async (req, res) => {
-//   console.log('Route accessed:', req.params.id); // Check if this logs
-
-//   try {
-//     const doctorId = req.params.id;
-
-//     console.log('Checking ID:', doctorId);
-//     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
-//       console.log('Invalid ID');
-//       return res.status(400).json({ error: 'Invalid Doctor ID' });
-//     }
-
-//     const doctorDetail = await doctordetails.findOne({ _id: doctorId });
-//     console.log('Doctor Detail:', doctorDetail);
-
-//     if (!doctorDetail) {
-//       console.log('Doctor not found');
-//       return res.status(404).json({ error: 'Doctor not found' });
-//     }
-
-//     res.status(200).json(doctorDetail);
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).json({ error: 'Error retrieving doctor details', details: error.message });
-//   }
-// });
 
 
 
@@ -589,72 +563,138 @@ router.get("/doc_appointments/:docId", async (req, res) => {
   }
 });
 
-// get doctor confirm appointment with patient, doctorId  details
-router.get("/doc_confirm_appointments/:docId", async (req, res) => {
+//api for acceting or rehecting the appitment 
+router.post("/manage_appointment/:docId", async (req, res) => {
+  try {
+    console.log("Incoming Request Body:", req.body);
 
+    const docId = req.params.docId;
+    const { appointmentId, status } = req.body;
+
+    if (!appointmentId) {
+      return res.status(400).json({ error: "Appointment ID is required" });
+    }
+
+    if (!["confirmed", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Must be 'confirmed' or 'rejected'" });
+    }
+
+    // Find and update the appointment
+    const updatedAppointment = await BookingAppointment.findOneAndUpdate(
+      { _id: appointmentId, doc_id: docId },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    return res.status(200).json({ 
+      message: `Appointment has been ${status} successfully`, 
+      updatedAppointment 
+    });
+  } catch (error) {
+    console.error("Error managing appointment:", error);
+    res.status(500).json({ error: "Error managing appointment", details: error.message });
+  }
+});
+
+router.get("/manage_appointments/:docId", async (req, res) => {
   try {
     const docId = req.params.docId;
-    console.log("docId", docId);
-    // Fetch all appointments for the user
-    const userAppointments = await ConformAppointment.find({ docId: docId });
-    // console.log("userAppointments", userAppointments);
-    if (!userAppointments || userAppointments.length === 0) {
-      return res.status(404).json({ error: 'Appointments not found' });
+    
+    // Fetch only pending appointments
+    const pendingAppointments = await BookingAppointment.find({ doc_id: docId, status: "pending" });
+
+    if (!pendingAppointments.length) {
+      return res.status(404).json({ error: "No pending appointments found" });
     }
 
-    // Prepare an array to store appointment details with doctor information
-    const appointmentsWithPatient = [];
-
-    // Iterate through each appointment
-    for (const appointment of userAppointments) {
-      // Fetch doctor details for each appointment
-      const userId = appointment.userId
-      const bookingdetails = await BookingAppointmentDetail.find({ userId: userId, doc_id: docId });
-      const PatietnDetails = await User.findById(userId);
-
-      // Create an object with appointment and doctor details
-      const appointmentWithPatient = {
-        bookingdetails: bookingdetails,
-        PatietnDetails: PatietnDetails,
-      };
-
-      // Add the object to the array
-      appointmentsWithPatient.push(appointmentWithPatient);
-    }
-
-    res.status(200).json(appointmentsWithPatient);
+    res.status(200).json(pendingAppointments);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error fetching pending appointments:", error);
+    res.status(500).json({ error: "Error fetching pending appointments", details: error.message });
   }
 });
 
 
-//when Doctor  conform  Appointment 
-router.post('/conformappointment/:docId', async (req, res) => {
+//accepted appo by doctor
+// Get all confirmed appointments for a doctor
+router.get("/confirmed_appointments/:docId", async (req, res) => {
   try {
     const docId = req.params.docId;
-    const { appoimentdetail } = req.body;
+    console.log("Doctor ID received:", docId); // Log docId to verify
 
-    // Step 1: Delete from BookingAppointment
-    await BookingAppointment.deleteOne({ _id: appoimentdetail._id });
+    // Fetch all confirmed (accepted) appointments for the doctor
+    const confirmedAppointments = await BookingAppointment.find({ doc_id: docId, status: "confirmed" });
 
-    // Step 2: Save to ConformAppointment
-    const userId = appoimentdetail.userId;
-    const appointment = new ConformAppointment({ docId, userId });
-    await appointment.save();
+    console.log("Confirmed Appointments:", confirmedAppointments); // Log fetched data
 
-    // Step 3: Save to Notification
-    const message = 'Your appointment has been confirmed.';
-    const newNotification = new Notification({ userId, message });
-    await newNotification.save();
+    if (!confirmedAppointments.length) {
+      return res.status(404).json({ error: "No confirmed appointments found" });
+    }
 
-    res.status(200).json('Appointment Booked successfully');
+    // Fetch patient details for each appointment
+    const appointmentsWithPatients = await Promise.all(
+      confirmedAppointments.map(async (appointment) => {
+        try {
+          const patient = await User.findById(appointment.userId).select("username email").lean();
+
+          console.log("Fetched Patient:", patient); // Debugging log
+
+          return {
+            appointmentDetails: appointment,
+            patientName: patient?.username || "Unknown", // Ensure username is added
+            patientEmail: patient?.email || "Not available",
+          };
+        } catch (error) {
+          console.error("Error fetching patient details:", error);
+          return {
+            appointmentDetails: appointment,
+            patientName: "Error fetching username",
+            patientEmail: "Error fetching email",
+          };
+        }
+      })
+    );
+
+    res.status(200).json(appointmentsWithPatients);
   } catch (error) {
-    console.error(error);
-    res.status(500).json('Error confirming appointment');
+    console.error("Error fetching confirmed appointments:", error);
+    res.status(500).json({ error: "Error fetching confirmed appointments", details: error.message });
   }
 });
+
+
+
+
+//get all rejected appo
+router.get("/rejected_appointments/:docId", async (req, res) => {
+  try {
+    const docId = req.params.docId;
+    console.log("Doctor ID received:", docId); // Log docId to verify
+
+    const rejectedAppointments = await BookingAppointment.find({ doc_id: docId, status: "rejected" });
+
+    console.log("Rejected Appointments:", rejectedAppointments); // Log fetched data
+
+    if (!rejectedAppointments.length) {
+      return res.status(404).json({ error: "No rejected appointments found" });
+    }
+
+    res.status(200).json(rejectedAppointments);
+  } catch (error) {
+    console.error("Error fetching rejected appointments:", error);
+    res.status(500).json({ error: "Error fetching rejected appointments", details: error.message });
+  }
+});
+
+
+
+
+
+
 
 // Fetch all notifications for a user
 router.get('/notifications/:userId', async (req, res) => {

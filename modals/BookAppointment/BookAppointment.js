@@ -8,6 +8,7 @@ const bookappointment = new mongoose.Schema({
     bookingDate: { type: String, required: true },
     userId: { type: String, required: true },
     Fees: { type: String, required: true },
+    status: { type: String, enum: ["pending", "confirmed", "rejected"], default: "pending" } // Added status field
 });
 
 const BookingAppointment = mongoose.model("BOOKINGAPPOINTMENT", bookappointment);
@@ -23,6 +24,7 @@ const saveAppointmentData = async (data) => {
             bookingDate: new Date().toISOString(),
             userId: data.userId,
             Fees: data.Fees,
+            status: "pending" // Default status when booking
         };
 
         // Save to the database
