@@ -18,7 +18,7 @@ const { AvailableTimings } = require("../../modals/DoctorAvaibleTime/DoctorTimes
 const { MedicalReport } = require("../../modals/MedicalReport/MedicalReport");
 const { Wallet } = require("../../modals/Wallet/Wallet");
 
-const crypto = require('crypto');
+
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
@@ -35,6 +35,7 @@ app.use(express.json());
 
 const { authenticateToken } = require('../../authentication');
 const { log } = require('console');
+const Review = require('../../modals/Reviews/Rev');
 app.use(cors());
 app.use(express.json());
 
@@ -2152,5 +2153,86 @@ router.put('/updatedoctortimeslot/:docId', async (req, res) => {
     res.status(500).json({ message: 'Error updating doctor data' });
   }
 });
+
+//reviews api
+
+// 📌 POST API: Submit a Review
+router.post("/reviews", async (req, res) => {
+  try {
+    const { doc_id, user_id, rating, comment } = req.body;
+
+    console.log("Received Data:", req.body);
+
+    // 🔍 Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(doc_id)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    // Convert doc_id to ObjectId
+    const doctorObjectId = new mongoose.Types.ObjectId(doc_id);
+
+    // 🔍 Check if doctor exists
+    const doctorExists = await doctordetails.findById(doctorObjectId);
+    if (!doctorExists) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    // 📝 Create new review
+    const newReview = new Review({
+      doc_id: doctorObjectId,
+      user_id: user_id, // Assuming user_id is already valid
+      rating: rating,
+      comment: comment,
+    });
+
+    // 🔄 Save review to database
+    await newReview.save();
+
+    res.json({ success: true, message: "Review submitted successfully!" });
+
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+
+// 📋 GET API: Fetch Reviews for a Doctor
+router.get("/reviews/:doctorId", async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    // 🛑 Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    // 🔍 Check if the doctor exists
+    const doctorExists = await doctordetails.findById(doctorId);
+    if (!doctorExists) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    // ✅ Fetch reviews and populate the reviewer's username
+    const reviews = await Review.find({ doc_id: doctorId })
+      .populate("user_id", "username") // Fetch reviewer's username
+      .sort({ createdAt: -1 }) // Sort by latest reviews
+      .lean(); // Converts to plain JS object for better performance
+
+    // 🕒 Format the `createdAt` date & time for each review
+    const formattedReviews = reviews.map((review) => ({
+      ...review,
+      date: new Date(review.createdAt).toLocaleDateString("en-US"), // Format: MM/DD/YYYY
+      time: new Date(review.createdAt).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' }) // Format: HH:MM AM/PM
+    }));
+
+    res.status(200).json({ success: true, reviews: formattedReviews });
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
 
 module.exports = router;
