@@ -36,6 +36,7 @@ app.use(express.json());
 const { authenticateToken } = require('../../authentication');
 const { log } = require('console');
 const Review = require('../../modals/Reviews/Rev');
+const Favourite = require('../../modals/Favourite/Favourite');
 app.use(cors());
 app.use(express.json());
 
@@ -2233,6 +2234,64 @@ router.get("/reviews/:doctorId", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
+
+router.post("/favourite", async (req, res) => {
+  try {
+    const { user_id, doctor_id } = req.body;
+
+    // 🛑 Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(user_id) || !mongoose.Types.ObjectId.isValid(doctor_id)) {
+      return res.status(400).json({ error: "Invalid User ID or Doctor ID format" });
+    }
+
+    // 🔍 Check if the doctor exists
+    const doctorExists = await doctordetails.findById(doctor_id);
+    if (!doctorExists) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    // 🔍 Check if already favorited
+    const alreadyFavorited = await Favourite.findOne({ user_id, doctor_id }); // ✅ Use correct model
+    if (alreadyFavorited) {
+      return res.status(400).json({ error: "Doctor is already in your favorites" });
+    }
+
+    // ✅ Add to favorites
+    const newFavorite = new Favourite({ user_id, doctor_id });
+    await newFavorite.save();
+
+    res.status(201).json({ success: true, message: "Doctor added to favorites!" });
+  } catch (error) {
+    console.error("Error adding favorite:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
+router.get("/favourites/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    // 🛑 Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(user_id)) {
+      return res.status(400).json({ error: "Invalid User ID format" });
+    }
+
+    // 🔍 Fetch Favorite List and Populate Doctor Details
+    const favorites = await Favourite.find({ user_id })
+      .populate("doctor_id", "name specialization country state image") // ✅ Direct populate syntax
+      .sort({ createdAt: -1 }); 
+
+    if (!favorites.length) {
+      return res.status(404).json({ error: "No favorite doctors found" });
+    }
+
+    res.status(200).json(favorites);
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
 
 
 module.exports = router;
