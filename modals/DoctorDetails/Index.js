@@ -14,39 +14,30 @@ const doctordetailsSchema = new mongoose.Schema({
   college: { type: String, required: false },
   license: { type: String, required: false },
   yearofexperience: { type: String, required: false },
-  status: { type: Boolean, default: false },
+  status: { type: Boolean, default: false }, // ✅ Keep this one, remove the duplicate below
   country: { type: String, required: false },
   state: { type: String, required: false },
   city: { type: String, required: false },
-  visitreason :{type: String, require:false},
-  once: {
-    type: [{
-      date: { type: String, required: false },
-      timefrom: { type: String, required: false },
-      timetill: { type: String, required: false },
-      consultationfees: { type: String, required: false },
-    }],
-    default: undefined,
-  },
-  daily: {
-    type: [{
-      datefrom: { type: String, required: false },
-      datetill: { type: String, required: false },
-      timefrom: { type: String, required: false },
-      timetill: { type: String, required: false },
-      consultationfees: { type: String, required: false },
-    }],
-    default: undefined,
-  },
-  weekly: {
-    type: [{
-      day: { type: String, required: false },
-      timefrom: { type: String, required: false },
-      timetill: { type: String, required: false },
-      consultationfees: { type: String, required: false },
-    }],
-    default: undefined,
-  },
+  visitreason: { type: String, required: false },
+  once: [{
+    date: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
+  }],
+  daily: [{
+    datefrom: { type: String, required: false },
+    datetill: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
+  }],
+  weekly: [{
+    day: { type: String, required: false },
+    timefrom: { type: String, required: false },
+    timetill: { type: String, required: false },
+    consultationfees: { type: String, required: false },
+  }]
 });
 
 const Pendingdoctor = new mongoose.Schema({

@@ -31,7 +31,7 @@ const app = express();
 const cors = require("cors");
 app.use('/uploads', express.static('uploads'));
 app.use(express.json());
-
+const Pusher = require("pusher");
 
 const { authenticateToken } = require('../../authentication');
 const { log } = require('console');
@@ -2306,6 +2306,83 @@ router.get("/favourites/:user_id", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
+
+const pusher = new Pusher({
+  appId: "1942966",
+  key: "6cf3f5fa6543ea8f0041",
+  secret: "a5bf621a962e5bed0109",
+  cluster: "mt1",
+  useTLS: true
+});
+
+router.post("/update-doctor-status", async (req, res) => {
+  try {
+    const { doctor_id, status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(doctor_id)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    const statusBoolean = status === "online" || status === true;
+
+    // ✅ Force update the status
+    const updatedDoctor = await doctordetails.findByIdAndUpdate(
+      doctor_id,
+      { status: statusBoolean },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedDoctor) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    console.log("Updated Doctor Status:", updatedDoctor.status); // Debug log
+
+    // ✅ Trigger Pusher Event
+    pusher.trigger("doctor-channel", "status-update", {
+      doctor_id,
+      status: statusBoolean
+    });
+
+    res.status(200).json({ success: true, message: `Doctor ${doctor_id} is now ${status}` });
+  } catch (error) {
+    console.error("Error updating doctor status:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
+
+
+
+router.get("/doctor-status/:doctorId", async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    const doctor = await doctordetails.findById(doctorId);
+
+    console.log("Doctor found in database:", doctor); // Debugging log
+
+    if (!doctor) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    // Check if status is correctly retrieved
+    console.log("Doctor Status:", doctor.status); // Debugging log
+
+    const statusText = doctor.status ? "online" : "offline";
+
+    res.status(200).json({ doctor_id: doctorId, status: statusText });
+  } catch (error) {
+    console.error("Error fetching doctor status:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
+
 
 
 
