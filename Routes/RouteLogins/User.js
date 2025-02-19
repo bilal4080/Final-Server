@@ -18,6 +18,7 @@ const { AvailableTimings } = require("../../modals/DoctorAvaibleTime/DoctorTimes
 const { MedicalReport } = require("../../modals/MedicalReport/MedicalReport");
 const { Wallet } = require("../../modals/Wallet/Wallet");
 
+const axios = require("axios");
 
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
@@ -89,18 +90,6 @@ function checkFileType(file, cb) {
   }
 }
 
-
-
-require('dotenv').config();
-// vbin oyml zgou fcxe
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: "mohammadilyas20001@gmail.com",
-    pass: "?",
-  },
-});
-
 ////////IMDFX/////
 // Signup route
 router.post('/signup', async (req, res) => {
@@ -124,6 +113,7 @@ router.post('/signup', async (req, res) => {
 
 // user Login  route
 const crypto = require('crypto'); // Ensure crypto is imported
+
 
 
 
@@ -2383,7 +2373,7 @@ router.get("/doctor-status/:doctorId", async (req, res) => {
 });
 
 
-
+// Function to send email
 
 
 module.exports = router;
