@@ -17,23 +17,21 @@ const { AvaibleTimes } = require("../../modals/DoctorAvaibleTime/AvaibleTime")
 const { AvailableTimings } = require("../../modals/DoctorAvaibleTime/DoctorTimes")
 const { MedicalReport } = require("../../modals/MedicalReport/MedicalReport");
 const { Wallet } = require("../../modals/Wallet/Wallet");
-
 const axios = require("axios");
-
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require("path");
 const fs = require("fs");
-const upload = multer({ dest: 'uploads/' });
 const mongoose = require("mongoose");
 const app = express();
 const cors = require("cors");
 app.use('/uploads', express.static('uploads'));
 app.use(express.json());
 const Pusher = require("pusher");
-
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 const { authenticateToken } = require('../../authentication');
 const { log } = require('console');
 const Review = require('../../modals/Reviews/Rev');
@@ -51,44 +49,6 @@ const generateSecretKey = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-
-const storageSingle = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../uploads/"));
-  },
-  filename: function (req, file, cb) {
-    const filename =
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname);
-    const filePath = path.join(__dirname, "../uploads/", filename);
-    console.log(filePath)
-
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-      if (err) {
-        cb(null, filename);
-      } else {
-        cb(null, file.fieldname);
-      }
-    });
-  },
-});
-const uploadSingle = multer({
-  storage: storageSingle,
-  fileFilter: function (req, file, cb) {
-    // console.log(file)
-    checkFileType(file, cb);
-  },
-});
-
-function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb("Error: Images only!");
-  }
-}
 
 ////////IMDFX/////
 // Signup route
@@ -2374,6 +2334,71 @@ router.get("/doctor-status/:doctorId", async (req, res) => {
 
 
 // Function to send email
+app.use(express.json());
+
+router.post("/google", async (req, res) => {
+  try {
+    console.log("📥 Full Request Body Received:", req.body); // Debug log
+
+    const { name, email, sub, picture } = req.body; // Use sub instead of googleId
+
+    if (!sub || typeof sub !== "string") {
+      console.error("❌ Error: Missing or Invalid Google ID", sub);
+      return res.status(400).json({ message: "Invalid Google ID", receivedData: req.body });
+    }
+
+    let user = await User.findOne({ googleId: sub }); // Check if user exists using sub as googleId
+
+    if (!user) {
+      user = new User({ name, email, googleId: sub, picture }); // Save sub as googleId
+      await user.save();
+      console.log("✅ New Google User Created:", user);
+    } else {
+      console.log("🔹 Existing Google User Logged In:", user);
+    }
+
+    res.status(200).json({ message: "Login successful", user });
+  } catch (error) {
+    console.error("❌ Error in Google Auth API:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+
+// router.post("/upload", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     // Upload file to Cloudinary
+//     cloudinary.uploader.upload_stream(
+//       { resource_type: "auto", folder: "documents" },
+//       async (error, result) => {
+//         if (error) {
+//           console.error("Cloudinary Upload Error:", error);
+//           return res.status(500).json({ message: "Upload failed", error });
+//         }
+
+//         // Save file details in MongoDB
+//         const newDoc = new Document({
+//           fileName: req.file.originalname,
+//           fileUrl: result.secure_url,
+//           publicId: result.public_id,
+//         });
+
+//         await newDoc.save();
+//         res.status(201).json({ message: "File uploaded successfully", file: newDoc });
+//       }
+//     ).end(req.file.buffer);
+
+//   } catch (error) {
+//     console.error("Upload Error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
 
 
 module.exports = router;
