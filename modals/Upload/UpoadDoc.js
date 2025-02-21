@@ -110,46 +110,43 @@ router.get("/files/:userId", async (req, res) => {
  * 📌 Delete File API - Verifies user ID before deletion
  */
 router.delete("/documents/:publicId/:userId", async (req, res) => {
-    try {
-        console.log("🗑️ API Hit: Delete File", req.params);
+  const publicId = req.params.publicId.trim();
+  const userId = req.params.userId.trim();
 
-        let { publicId, userId } = req.params;
-        userId = userId.replace(/\s+/g, "");
+  try {
+      console.log("🗑️ API Hit: Delete File", { publicId, userId });
 
-        if (!publicId || !userId) {
-            return res.status(400).json({ error: "Missing publicId or userId" });
-        }
+      // Try finding with and without "documents/"
+      const file = await Document.findOne({
+          $or: [
+              { publicId: publicId, uploadedBy: userId },
+              { publicId: `documents/${publicId}`, uploadedBy: userId }
+          ]
+      });
 
-        console.log("🔍 Searching for file with:", { publicId, uploadedBy: userId });
+      if (!file) {
+          console.log("❌ File not found in DB");
+          return res.status(404).json({ error: "File not found" });
+      }
 
-        const file = await Document.findOne({ publicId, uploadedBy: userId });
+      console.log("✅ File found in DB:", file);
 
-        if (!file) {
-            console.log("❌ File not found in DB");
-            return res.status(404).json({ error: "File not found or unauthorized" });
-        }
+      // Delete from Cloudinary
+      await cloudinary.uploader.destroy(file.publicId);
+      console.log("☁️ Deleted from Cloudinary:", file.publicId);
 
-        console.log("📄 Found File:", file);
+      // Remove from MongoDB
+      await Document.deleteOne({ _id: file._id });
+      console.log("🗑️ Deleted from Database");
 
-        // ☁️ Delete from Cloudinary
-        const cloudinaryResponse = await cloudinary.uploader.destroy(publicId);
-        console.log("☁️ Cloudinary Delete Response:", cloudinaryResponse);
-
-        if (cloudinaryResponse.result !== "ok" && cloudinaryResponse.result !== "not found") {
-            return res.status(500).json({ error: "Cloudinary deletion failed" });
-        }
-
-        // 🗑️ Delete from MongoDB
-        await Document.deleteOne({ publicId, uploadedBy: userId });
-
-        console.log("✅ File deleted successfully from DB");
-
-        res.status(200).json({ message: "File deleted successfully" });
-    } catch (error) {
-        console.error("🚨 Delete Error:", error);
-        res.status(500).json({ error: "Failed to delete file" });
-    }
+      return res.json({ message: "File deleted successfully" });
+  } catch (error) {
+      console.error("⚠️ Error deleting file:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
 });
+
+
 
 
 module.exports = router;
