@@ -27,6 +27,7 @@ const fs = require("fs");
 const mongoose = require("mongoose");
 const app = express();
 const cors = require("cors");
+
 app.use('/uploads', express.static('uploads'));
 app.use(express.json());
 const Pusher = require("pusher");
@@ -2367,38 +2368,6 @@ router.post("/google", async (req, res) => {
 
 
 
-// router.post("/upload", upload.single("file"), async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({ message: "No file uploaded" });
-//     }
-
-//     // Upload file to Cloudinary
-//     cloudinary.uploader.upload_stream(
-//       { resource_type: "auto", folder: "documents" },
-//       async (error, result) => {
-//         if (error) {
-//           console.error("Cloudinary Upload Error:", error);
-//           return res.status(500).json({ message: "Upload failed", error });
-//         }
-
-//         // Save file details in MongoDB
-//         const newDoc = new Document({
-//           fileName: req.file.originalname,
-//           fileUrl: result.secure_url,
-//           publicId: result.public_id,
-//         });
-
-//         await newDoc.save();
-//         res.status(201).json({ message: "File uploaded successfully", file: newDoc });
-//       }
-//     ).end(req.file.buffer);
-
-//   } catch (error) {
-//     console.error("Upload Error:", error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
 
 module.exports = router;
