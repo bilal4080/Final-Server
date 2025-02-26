@@ -55,15 +55,21 @@ const generateSecretKey = () => {
 // Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    // console.log("username, email, password", username, email, password)
-    const existingUser = await User.findOne({ email });
+    const { username, email, password, phone } = req.body;
 
+    // Check if all required fields are provided
+    if (!username || !email || !password || !phone) {
+      return res.status(400).json('All fields (username, email, password, phone) are required');
+    }
+
+    // Check if the email is already registered
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json('User with this email already exists');
     }
 
-    const user = new User({ username, email, password });
+    // Create and save the new user
+    const user = new User({ username, email, password, phone });
     await user.save();
 
     res.status(200).json('Signup successful');
