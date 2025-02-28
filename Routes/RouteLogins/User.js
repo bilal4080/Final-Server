@@ -17,6 +17,8 @@ const { AvaibleTimes } = require("../../modals/DoctorAvaibleTime/AvaibleTime")
 const { AvailableTimings } = require("../../modals/DoctorAvaibleTime/DoctorTimes")
 const { MedicalReport } = require("../../modals/MedicalReport/MedicalReport");
 const { Wallet } = require("../../modals/Wallet/Wallet");
+const DoctorStatus = require("../../modals/DoctorStatus/DoctorStatus");
+
 const axios = require("axios");
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
@@ -2382,6 +2384,77 @@ router.get("/users", async (req, res) => {
 });
 
 
+
+//last seen
+
+router.post("/doctor/update-last-seen/:doctorId", async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { last_page } = req.body; // Example: "dashboard"
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    const lastSeenTime = new Date();
+
+    const doctorStatus = await DoctorStatus.findOneAndUpdate(
+      { doctor_id: doctorId }, // Find by doctor_id
+      { 
+        last_seen: lastSeenTime, 
+        last_page: last_page || "Unknown" 
+      },
+      { new: true, upsert: true } // If not found, create new record
+    );
+
+    // Emit event via Pusher
+    pusher.trigger("doctor-channel", "last-seen-updated", {
+      doctor_id: doctorId,
+      last_seen: lastSeenTime,
+      last_page: last_page || "Unknown",
+    });
+
+    res.status(200).json({ 
+      message: "Last seen updated", 
+      last_seen: doctorStatus.last_seen, 
+      last_page: doctorStatus.last_page 
+    });
+
+  } catch (error) {
+    console.error("Error updating last seen:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
+// ✅ API to Get Doctor's Last Seen
+// ✅ API to Get Doctor's Last Seen
+router.get("/doctor/last-seen/:doctorId", async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ error: "Invalid Doctor ID format" });
+    }
+
+    const doctorStatus = await DoctorStatus.findOne(
+      { doctor_id: doctorId }, 
+      "last_seen last_page"
+    );
+
+    if (!doctorStatus) {
+      return res.status(404).json({ error: "Doctor not found" });
+    }
+
+    res.status(200).json({ 
+      last_seen: doctorStatus.last_seen, 
+      last_page: doctorStatus.last_page 
+    });
+
+  } catch (error) {
+    console.error("Error fetching last seen:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
 
 
 
