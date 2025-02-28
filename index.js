@@ -6,6 +6,7 @@ const connection = require("./db");
 const userRoutes = require('./Routes/RouteLogins/User')
 const uploadRoute =require('./modals/Upload/UpoadDoc')
 const paymentRoutes = require("./Payment/paymentRoutes.js");
+const announcementRoutes = require("./modals/Announcement/announcementRoutes.js"); 
 const app = express();
 const cors = require("cors");
 app.use(express.json());
@@ -114,6 +115,7 @@ io.on('connection', (socket) => {
 connection();
 app.use("/api", uploadRoute);
 app.use("/payment",paymentRoutes);
+app.use("/api",announcementRoutes);
 const PORT = process.env.PORT || 3006;
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

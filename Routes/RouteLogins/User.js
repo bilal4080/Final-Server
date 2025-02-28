@@ -2456,6 +2456,7 @@ router.get("/doctor/last-seen/:doctorId", async (req, res) => {
   }
 });
 
+//announments 
 
 
 
